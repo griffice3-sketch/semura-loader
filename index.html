@@ -137,11 +137,26 @@
       document.getElementById('frame-'+which).src = SRC[which];
       loaded[which] = true;
     }
+    document.getElementById('frame-'+which).style.height = '700px';  // 初期値。高さ通知で追従
     panel.classList.add('open');
     card.classList.add('active');
     // 開いたパネルへスクロール
     setTimeout(function(){ panel.scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
   }
+  // 本体(診断/ナース)から届く高さ通知で、開いているパネルのiframeを中身ぴったりに
+  window.addEventListener('message', function(ev){
+    var d = ev.data;
+    if(!d || d.type !== 'SEMURA_HEIGHT') return;
+    var h = parseInt(d.height, 10);
+    if(!h || h < 200) return;
+    ['naika','seikei'].forEach(function(w){
+      var p = document.getElementById('panel-'+w);
+      if(p.classList.contains('open')){
+        document.getElementById('frame-'+w).style.height = (h + 24) + 'px';  // 内スクロール回避の余白
+      }
+    });
+  });
+
   function closeAll(){
     ['naika','seikei'].forEach(function(w){
       document.getElementById('panel-'+w).classList.remove('open');
