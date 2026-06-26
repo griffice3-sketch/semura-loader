@@ -114,9 +114,10 @@
 
 <script>
   // loader経由のURL（中身=本体URLは隠れる）
+  // loaderを挟むと「孫iframe」になりStreamlitが帯/枠を出すため、本体を直接embedで読む
   var SRC = {
-    naika:  "https://griffice3-sketch.github.io/semura-loader/loader.html?v=8",
-    seikei: "https://griffice3-sketch.github.io/semura-loader/nurse_loader.html?v=8"
+    naika:  "https://semura-lab-diagnosis.streamlit.app/?embed=true&embed_options=light_theme",
+    seikei: "https://semura-nurse.streamlit.app/?embed=true&embed_options=light_theme"
   };
   // iframeは初回オープン時にだけ読み込む（隠してる間は読みに行かない）
   var loaded = { naika:false, seikei:false };
