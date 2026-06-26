@@ -57,20 +57,16 @@
 
   /* ── 展開パネル（アコーディオン） ── */
   .panel{
-    margin-top:26px;border:1px solid var(--line);border-radius:16px;overflow:hidden;
-    background:#FFFFFF;display:none;
+    margin-top:18px;background:#FFFFFF;display:none;
   }
   .panel.open{display:block;animation:drop .35s ease;}
-  .panel .bar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--line);
-    font-weight:700;color:var(--ink);font-size:15px;
+  /* さりげない閉じる導線（帯は置かず、右寄せの小リンクのみ） */
+  .panel .closerow{ text-align:right; margin:0 2px 6px; }
+  .panel .closerow .close{
+    border:0;background:transparent;cursor:pointer;font-family:inherit;
+    font-size:13px;color:var(--muted);padding:4px 6px;
   }
-  .panel .bar .close{
-    border:1px solid #C9CDD3;background:#fff;border-radius:8px;cursor:pointer;
-    font-family:inherit;font-size:13px;color:#444;padding:6px 12px;
-  }
-  .panel .bar .close:hover{background:#EFEFEF;}
+  .panel .closerow .close:hover{ color:var(--ink); text-decoration:underline; }
   .panel iframe{display:block;width:100%;height:1100px;border:0;background:#fff;}
   @keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 </style>
@@ -103,19 +99,13 @@
 
   <!-- 展開パネル：内科（診断アプリ loader） -->
   <div class="panel" id="panel-naika">
-    <div class="bar">
-      <span>総合内科・外科 ― ロジック診断</span>
-      <button class="close" onclick="closeAll()">閉じる ✕</button>
-    </div>
+    <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
     <iframe id="frame-naika" title="ロジック診断" loading="lazy"></iframe>
   </div>
 
   <!-- 展開パネル：整形外科（ナース loader） -->
   <div class="panel" id="panel-seikei">
-    <div class="bar">
-      <span>整形外科・インフラ外来 ― ご相談</span>
-      <button class="close" onclick="closeAll()">閉じる ✕</button>
-    </div>
+    <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
     <iframe id="frame-seikei" title="インフラ外来" loading="lazy"></iframe>
   </div>
 
