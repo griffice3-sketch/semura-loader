@@ -68,7 +68,22 @@
     font-size:13px;color:var(--muted);padding:4px 6px;
   }
   .panel .closerow .close:hover{ color:var(--ink); text-decoration:underline; }
-  .panel iframe{display:block;width:100%;height:3000px;border:0;outline:0;background:#fff;}
+  /* iframeを囲む窓。外周をはみ出させて枠を切り落とす */
+  .frame-wrap{ position:relative; overflow:hidden; background:#fff; }
+  .frame-wrap iframe{
+    display:block; width:calc(100% + 6px); margin-left:-3px;   /* 左右の枠を切る */
+    height:700px; border:0; outline:0; background:#fff;
+  }
+  /* 下端の「Built with Streamlit / Fullscreen」帯を白で覆う */
+  .frame-wrap .footmask{
+    position:absolute; left:0; right:0; bottom:0; height:48px;
+    background:#FFFFFF; z-index:2; pointer-events:none;
+  }
+  /* 上端の薄線を覆う */
+  .frame-wrap .topmask{
+    position:absolute; left:0; right:0; top:0; height:3px;
+    background:#FFFFFF; z-index:2; pointer-events:none;
+  }
   @keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -101,13 +116,19 @@
   <!-- 展開パネル：内科（診断アプリ loader） -->
   <div class="panel" id="panel-naika">
     <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
-    <iframe id="frame-naika" title="ロジック診断" loading="lazy" frameborder="0"></iframe>
+    <div class="frame-wrap">
+      <iframe id="frame-naika" title="ロジック診断" loading="lazy" frameborder="0"></iframe>
+      <div class="topmask"></div><div class="footmask"></div>
+    </div>
   </div>
 
   <!-- 展開パネル：整形外科（ナース loader） -->
   <div class="panel" id="panel-seikei">
     <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
-    <iframe id="frame-seikei" title="インフラ外来" loading="lazy" frameborder="0"></iframe>
+    <div class="frame-wrap">
+      <iframe id="frame-seikei" title="インフラ外来" loading="lazy" frameborder="0"></iframe>
+      <div class="topmask"></div><div class="footmask"></div>
+    </div>
   </div>
 
 </div>
@@ -138,7 +159,7 @@
       document.getElementById('frame-'+which).src = SRC[which];
       loaded[which] = true;
     }
-    document.getElementById('frame-'+which).style.height = '700px';  // 初期値。高さ通知で追従
+    document.getElementById('frame-'+which).style.height = '600px';  // 初期値。高さ通知で追従
     panel.classList.add('open');
     card.classList.add('active');
     // 開いたパネルへスクロール
@@ -153,7 +174,8 @@
     ['naika','seikei'].forEach(function(w){
       var p = document.getElementById('panel-'+w);
       if(p.classList.contains('open')){
-        document.getElementById('frame-'+w).style.height = (h + 24) + 'px';  // 内スクロール回避の余白
+        // 中身ぴったり + 下マスク分(48)。これでiframe内スクロールバーが消える
+        document.getElementById('frame-'+w).style.height = (h + 56) + 'px';
       }
     });
   });
