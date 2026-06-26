@@ -69,11 +69,24 @@
         }, 700);
       }
 
-      // ロード後、本体が白を描くまでの余白を取ってから見せる
-      // (この間 iframe は opacity:0 なので、Streamlitの黒い初期描画は一切見えない)
-      app.addEventListener('load', function () { setTimeout(reveal, 2000); });
-      // 安全弁:何があっても8秒で必ず見せる
-      setTimeout(reveal, 8000);
+      // 本体(semura-top)が「描画完了」を知らせてきたら、その時に初めて外す。
+      // これにより、表示が整うまでロード画面を出し続ける（グレーを見せない）。
+      function showAgain() {
+        done = false;
+        if (overlay) {
+          if (!overlay.parentNode) document.body.appendChild(overlay);
+          overlay.classList.remove('hide');
+        }
+        if (app) app.classList.remove('ready');
+        clearTimeout(window.__semSafe);
+        window.__semSafe = setTimeout(reveal, 15000);
+      }
+      window.addEventListener('message', function (ev) {
+        if (ev.data === 'SEMURA_SHOW')  { showAgain(); }
+        if (ev.data === 'SEMURA_READY') { setTimeout(reveal, 250); }
+      });
+      // 安全弁:合図が来なくても15秒で必ず見せる
+      window.__semSafe = setTimeout(reveal, 15000);
     })();
   </script>
 </body>
