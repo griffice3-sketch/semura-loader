@@ -17,11 +17,11 @@
     background:#FFFFFF; opacity:0; transition:opacity .35s ease; }
   #app.ready { opacity:1; }
   /* 埋め込み時にCloudが出す「Built with Streamlit」帯を、白帯で物理的に覆う */
-  #footmask { position:absolute; left:0; right:0; bottom:0; height:50px;
+  #footmask { position:fixed; left:0; right:0; bottom:0; height:50px;
     background:#FFFFFF; z-index:1; pointer-events:none; }
   /* 起動中オーバーレイ(本体の上に重ねる) */
   #overlay {
-    position:absolute; inset:0; z-index:2;
+    position:fixed; inset:0; z-index:2;
     display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:18px;
     padding-top:64px;
     background:#FFFFFF; color:#1A1A1A;
