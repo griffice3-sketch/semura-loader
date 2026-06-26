@@ -58,6 +58,7 @@
   /* ── 展開パネル（アコーディオン） ── */
   .panel{
     margin-top:18px;background:#FFFFFF;display:none;
+    border:0;border-radius:0;box-shadow:none;padding:0;
   }
   .panel.open{display:block;animation:drop .35s ease;}
   /* さりげない閉じる導線（帯は置かず、右寄せの小リンクのみ） */
@@ -67,7 +68,7 @@
     font-size:13px;color:var(--muted);padding:4px 6px;
   }
   .panel .closerow .close:hover{ color:var(--ink); text-decoration:underline; }
-  .panel iframe{display:block;width:100%;height:3000px;border:0;background:#fff;}
+  .panel iframe{display:block;width:100%;height:3000px;border:0;outline:0;background:#fff;}
   @keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 </style>
 </head>
@@ -100,13 +101,13 @@
   <!-- 展開パネル：内科（診断アプリ loader） -->
   <div class="panel" id="panel-naika">
     <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
-    <iframe id="frame-naika" title="ロジック診断" loading="lazy"></iframe>
+    <iframe id="frame-naika" title="ロジック診断" loading="lazy" frameborder="0"></iframe>
   </div>
 
   <!-- 展開パネル：整形外科（ナース loader） -->
   <div class="panel" id="panel-seikei">
     <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
-    <iframe id="frame-seikei" title="インフラ外来" loading="lazy"></iframe>
+    <iframe id="frame-seikei" title="インフラ外来" loading="lazy" frameborder="0"></iframe>
   </div>
 
 </div>
