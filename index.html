@@ -23,16 +23,19 @@
   }
   .wrap{max-width:940px;margin:0 auto;padding:48px 20px 80px;}
 
+  /* ── ヘッダー ── */
   .head{text-align:center;}
   .head .brand{font-size:30px;font-weight:700;color:var(--ink);letter-spacing:.01em;line-height:1.45;}
   .head .q{display:inline-block;font-size:20px;font-weight:700;color:var(--ink);
     border-bottom:2px solid var(--ink);padding-bottom:6px;margin:40px 0 0;}
   .head .lede{font-size:18px;color:var(--body);margin:30px 0 0;}
 
+  /* ── 診療科の見出し ── */
   .cap{text-align:center;font-size:20px;font-weight:700;color:var(--ink);
     letter-spacing:.05em;margin:54px 0 30px;}
   .cap .sq{color:var(--ink);}
 
+  /* ── 2カード ── */
   .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;}
   .card{
     flex:1 1 320px;max-width:430px;border:0;border-radius:16px;cursor:pointer;
@@ -52,27 +55,28 @@
   .card.yellow .cta{color:var(--yellow-deep);}
   .card.active{outline:3px solid rgba(0,0,0,.12);}
 
+  /* ── 展開パネル（アコーディオン） ── */
   .panel{
     margin-top:18px;background:#FFFFFF;display:none;
     border:0;border-radius:0;box-shadow:none;padding:0;
   }
   .panel.open{display:block;animation:drop .35s ease;}
+  /* さりげない閉じる導線（帯は置かず、右寄せの小リンクのみ） */
   .panel .closerow{ text-align:right; margin:0 2px 6px; }
   .panel .closerow .close{
     border:0;background:transparent;cursor:pointer;font-family:inherit;
     font-size:13px;color:var(--muted);padding:4px 6px;
   }
   .panel .closerow .close:hover{ color:var(--ink); text-decoration:underline; }
-
   /* iframeを囲む窓。外周をはみ出させて枠を切り落とす */
   .frame-wrap{ position:relative; overflow:hidden; background:#fff; }
   .frame-wrap iframe{
-    display:block; width:calc(100% + 6px); margin-left:-3px;
-    height:700px; border:0; outline:0; background:#fff;
+    display:block; width:calc(100% + 6px); margin-left:-3px;   /* 左右の枠を切る */
+    height:1200px; border:0; outline:0; background:#fff;
   }
   /* 下端の「Built with Streamlit / Fullscreen」帯を白で覆う */
   .frame-wrap .footmask{
-    position:absolute; left:0; right:0; bottom:0; height:48px;
+    position:absolute; left:0; right:0; bottom:0; height:64px;
     background:#FFFFFF; z-index:2; pointer-events:none;
   }
   /* 上端の薄線を覆う */
@@ -86,6 +90,7 @@
 <body>
 <div class="wrap">
 
+  <!-- ヘッダー -->
   <div class="head">
     <div class="brand">FXロジック再生クリニック ｜ Semura Lab.</div>
     <div class="q">「自分のロジックは、本当にこのままで通用するのか？」</div>
@@ -93,8 +98,10 @@
     「現在地」を見失ったあなたのロジックを、客観的に診断します。</p>
   </div>
 
+  <!-- 診療科の見出し -->
   <div class="cap"><span class="sq">■</span>&nbsp;&nbsp;診療科のご案内&nbsp;&nbsp;<span class="sq">■</span></div>
 
+  <!-- 2カード -->
   <div class="cards">
     <button class="card green" id="card-naika" onclick="openDept('naika')">
       <div class="t">★総合内科・外科<br>（ロジック治療）</div>
@@ -106,6 +113,7 @@
     </button>
   </div>
 
+  <!-- 展開パネル：内科（診断アプリ loader） -->
   <div class="panel" id="panel-naika">
     <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
     <div class="frame-wrap">
@@ -114,6 +122,7 @@
     </div>
   </div>
 
+  <!-- 展開パネル：整形外科（ナース loader） -->
   <div class="panel" id="panel-seikei">
     <div class="closerow"><button class="close" onclick="closeAll()">▲ 閉じる</button></div>
     <div class="frame-wrap">
@@ -125,44 +134,39 @@
 </div>
 
 <script>
+  // loader経由のURL（中身=本体URLは隠れる）
+  // loaderを挟むと「孫iframe」になりStreamlitが帯/枠を出すため、本体を直接embedで読む
   var SRC = {
     naika:  "https://semura-lab-diagnosis.streamlit.app/?embed=true&embed_options=light_theme",
     seikei: "https://semura-nurse.streamlit.app/?embed=true&embed_options=light_theme"
   };
+  // iframeは初回オープン時にだけ読み込む（隠してる間は読みに行かない）
   var loaded = { naika:false, seikei:false };
+  // 科ごとの固定高さ（内スクロールを出さない十分な値）。余白は下端マスクと白背景で目立たせない
+  var H = { naika:4800, seikei:1200 };   // 診断=長い / ナース=短い
 
   function openDept(which){
     var other = which === 'naika' ? 'seikei' : 'naika';
+    // もう片方を閉じる
     document.getElementById('panel-'+other).classList.remove('open');
     document.getElementById('card-'+other).classList.remove('active');
+    // 該当を開く
     var panel = document.getElementById('panel-'+which);
     var card  = document.getElementById('card-'+which);
     if(panel.classList.contains('open')){
+      // 既に開いている同じ科を押したら閉じる
       panel.classList.remove('open'); card.classList.remove('active'); return;
     }
     if(!loaded[which]){
       document.getElementById('frame-'+which).src = SRC[which];
       loaded[which] = true;
     }
-    document.getElementById('frame-'+which).style.height = '600px';
+    document.getElementById('frame-'+which).style.height = H[which] + 'px';  // 科ごとの固定高さ
     panel.classList.add('open');
     card.classList.add('active');
+    // 開いたパネルへスクロール
     setTimeout(function(){ panel.scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
   }
-
-  window.addEventListener('message', function(ev){
-    var d = ev.data;
-    if(!d || d.type !== 'SEMURA_HEIGHT') return;
-    var h = parseInt(d.height, 10);
-    if(!h || h < 200) return;
-    ['naika','seikei'].forEach(function(w){
-      var p = document.getElementById('panel-'+w);
-      if(p.classList.contains('open')){
-        document.getElementById('frame-'+w).style.height = (h + 56) + 'px';
-      }
-    });
-  });
-
   function closeAll(){
     ['naika','seikei'].forEach(function(w){
       document.getElementById('panel-'+w).classList.remove('open');
