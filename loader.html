@@ -5,16 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Semura Lab.</title>
 
-<!-- ① アクセスした瞬間、streamlitの起動を"同時"に開始（接続・取得を先行で温める） -->
+<!-- 同時発射：streamlitへの接続を最上部で先行 -->
 <link rel="preconnect" href="https://semura-top.streamlit.app" crossorigin>
 <link rel="dns-prefetch" href="https://semura-top.streamlit.app">
-<link rel="prefetch" as="document"
-  href="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme">
+
+<!-- 同時発射：他より先に streamlit 本体(iframe)を起動。裏で勝手に走る（ロード画面とは無関係） -->
+<script>
+  var SRC = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
+  document.write('<iframe id="app" title="Semura Lab." src="'+SRC+'"></iframe>');
+</script>
 
 <style>
   html,body{margin:0;height:100%;background:#FFFFFF;}
-  /* ② ロード画面（このページ自身がロード画面。埋め込み窓は使わない） */
-  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;
+  #app{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:#FFFFFF;z-index:1;}
+  #footmask{position:fixed;left:0;right:0;bottom:0;height:50px;background:#FFFFFF;z-index:3;pointer-events:none;}
+  /* ロード画面：完全に独立。タイマーで自分の都合だけで消える（streamlitの状態は一切見ない） */
+  #overlay{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;
     align-items:center;justify-content:flex-start;gap:18px;padding-top:64px;
     background:#FFFFFF;color:#1A1A1A;
     font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;}
@@ -24,32 +30,24 @@
     border-radius:50%;animation:spin .9s linear infinite;}
   #overlay .msg{font-size:15px;color:#6B6B6B;letter-spacing:.03em;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  #dbg{position:fixed;right:6px;bottom:6px;font:11px monospace;color:#CFCFCF;}
 </style>
 </head>
 <body>
+  <!-- 同時発射：ロード画面 -->
   <div id="overlay">
     <div class="brand">Semura&nbsp;Lab.</div>
     <div class="rule"></div>
     <div class="spinner"></div>
     <div class="msg">準備しています…</div>
   </div>
-  <div id="dbg">t=0.0s</div>
+  <div id="footmask"></div>
 
   <script>
-    // ③ アクセスと同時に streamlit を裏で温める（fetchで起動を促す）＋ タイマー始動。
-    var URL = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
-    try { fetch(URL, {mode:"no-cors"}); } catch(e) {}   // 起動を“同時発射”（no-corsで投げるだけ）
-
-    var t0 = Date.now(), dbg = document.getElementById('dbg');
-    var tick = setInterval(function(){ dbg.textContent = "t="+((Date.now()-t0)/1000).toFixed(1)+"s"; }, 100);
-
-    // ④ タイマー（2秒）が切れたら streamlit 本体へ移動＝表示。秒数はここだけ変えれば変わる。
-    var SECONDS = 2.0;
+    // ロード画面は独立。タイマーが切れたら消す。それだけ。
+    var SECONDS = 2.0;   // ← 調整はここだけ
     setTimeout(function(){
-      clearInterval(tick);
-      location.replace(URL);
-    }, SECONDS * 1000);
+      var o=document.getElementById('overlay'); if(o) o.style.display='none';
+    }, SECONDS*1000);
   </script>
 </body>
 </html>
