@@ -5,89 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Semura Lab.</title>
 <link rel="preconnect" href="https://semura-top.streamlit.app">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <style>
   html, body { margin:0; height:100%; background:#FFFFFF; }
-  body { background:#FFFFFF; }
-  /* 診断アプリ本体(全面) */
-  #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block;
-    background:#FFFFFF; opacity:0; transition:opacity .35s ease; }
-  #app.ready { opacity:1; }
-  /* 埋め込み時にCloudが出す「Built with Streamlit」帯を、白帯で物理的に覆う */
+  /* iframeを全面表示するだけ。透明化・オーバーレイ等の小細工はしない＝直と同じ見え方。 */
+  #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#FFFFFF; }
+  /* 埋め込み時にCloudが出す「Built with Streamlit」帯だけ、白帯で物理的に覆う */
   #footmask { position:fixed; left:0; right:0; bottom:0; height:50px;
     background:#FFFFFF; z-index:1; pointer-events:none; }
-  /* 起動中オーバーレイ(本体の上に重ねる) */
-  #overlay {
-    position:fixed; inset:0; z-index:2;
-    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:18px;
-    padding-top:64px;
-    background:#FFFFFF; color:#1A1A1A;
-    font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;
-    transition:opacity .6s ease;
-  }
-  #overlay.hide { opacity:0; pointer-events:none; }
-  #overlay .brand { font-size:22px; font-weight:700; letter-spacing:.01em; }
-  #overlay .rule  { width:46px; height:2px; background:#111111; }
-  #overlay .spinner {
-    width:34px; height:34px; border:3px solid #E6E8EC; border-top-color:#33485E;
-    border-radius:50%; animation:spin .9s linear infinite;
-  }
-  #overlay .msg { font-size:15px; color:#6B6B6B; letter-spacing:.03em; text-align:center; padding:0 16px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
-  <!-- 統合トップ(semura-top)。embed=true で余計なメニューを消し、light_theme で白を強制 -->
+  <!-- 統合トップ(semura-top)。URLを隠す窓として中身をそのまま表示（直と同じ起動の見え方）。 -->
   <iframe id="app" title="Semura Lab."
-    src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme&embed_options=hide_loading_screen"></iframe>
+    src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
   <div id="footmask"></div>
-
-  <!-- 起動中の白いカバー。読み込み完了でフェードして消える -->
-  <div id="overlay">
-    <div class="brand">Semura&nbsp;Lab.</div>
-    <div class="rule"></div>
-    <div class="spinner" role="status" aria-label="読み込み中"></div>
-    <div class="msg">ラボを起動しています… 数秒お待ちください</div>
-  </div>
-
-  <script>
-    (function () {
-      var overlay = document.getElementById('overlay');
-      var app = document.getElementById('app');
-      var done = false;
-
-      function reveal() {
-        if (done) return; done = true;
-        // 本体は白を描き終えている想定。iframeをフェードインし、白カバーを外す。
-        app.classList.add('ready');
-        overlay.classList.add('hide');
-        setTimeout(function () {
-          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-        }, 700);
-      }
-
-      // 本体(semura-top)が「描画完了」を知らせてきたら、その時に初めて外す。
-      // これにより、表示が整うまでロード画面を出し続ける（グレーを見せない）。
-      function showAgain() {
-        done = false;
-        if (overlay) {
-          if (!overlay.parentNode) document.body.appendChild(overlay);
-          overlay.classList.remove('hide');
-        }
-        if (app) app.classList.remove('ready');
-        clearTimeout(window.__semSafe);
-        window.__semSafe = setTimeout(reveal, 15000);
-      }
-      window.addEventListener('message', function (ev) {
-        if (ev.data === 'SEMURA_SHOW')  { showAgain(); }
-        if (ev.data === 'SEMURA_READY') { setTimeout(reveal, 250); }
-      });
-      // 安全弁:合図が来なくても15秒で必ず見せる
-      window.__semSafe = setTimeout(reveal, 15000);
-    })();
-  </script>
 </body>
 </html>
