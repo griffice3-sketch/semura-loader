@@ -7,17 +7,40 @@
 <link rel="preconnect" href="https://semura-top.streamlit.app">
 <style>
   html, body { margin:0; height:100%; background:#FFFFFF; }
-  /* iframeを全面表示するだけ。透明化・オーバーレイ等の小細工はしない＝直と同じ見え方。 */
   #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#FFFFFF; }
-  /* 埋め込み時にCloudが出す「Built with Streamlit」帯だけ、白帯で物理的に覆う */
   #footmask { position:fixed; left:0; right:0; bottom:0; height:50px;
     background:#FFFFFF; z-index:1; pointer-events:none; }
+  /* iframe初回ラグの「真っ白」だけを隠す軽量ロード。loadで即消す。固定で居座らせない */
+  #boot { position:fixed; inset:0; z-index:9; background:#FFFFFF;
+    display:flex; align-items:center; justify-content:center;
+    transition:opacity .35s ease; }
+  #boot.hide { opacity:0; pointer-events:none; }
+  #boot .spin { width:34px; height:34px; border-radius:50%;
+    border:3px solid #E6E9EE; border-top-color:#33485E;
+    animation:sp .8s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
-  <!-- 統合トップ(semura-top)。URLを隠す窓として中身をそのまま表示（直と同じ起動の見え方）。 -->
+  <div id="boot"><div class="spin"></div></div>
   <iframe id="app" title="Semura Lab."
     src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
   <div id="footmask"></div>
+  <script>
+    (function(){
+      var boot = document.getElementById('boot');
+      var ifr  = document.getElementById('app');
+      var done = false;
+      function hide(){
+        if(done) return; done = true;
+        boot.classList.add('hide');
+        setTimeout(function(){ boot.style.display='none'; }, 400);
+      }
+      // 本筋: iframeのHTML/JSが届いた瞬間に消す（真っ白の終わり＝Streamlitが描画を始める）
+      ifr.addEventListener('load', hide);
+      // 保険のみ: loadが万一来なくても永久居座りさせない。短く。通常はloadが先に来る
+      setTimeout(hide, 6000);
+    })();
+  </script>
 </body>
 </html>
