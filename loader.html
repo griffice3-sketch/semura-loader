@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- ▼ 何よりも先に streamlit への接続・取得を開始（loader表示と"同時"に起動させる） -->
+<!-- streamlitへの接続・取得を最優先で先行（loader表示と同時に起動） -->
 <link rel="preconnect" href="https://semura-top.streamlit.app" crossorigin>
 <link rel="dns-prefetch" href="https://semura-top.streamlit.app">
 <link rel="preload" as="document" href="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme">
@@ -12,7 +12,6 @@
   html,body{margin:0;height:100%;background:#FFFFFF;}
   #app{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#FFFFFF;}
   #footmask{position:fixed;left:0;right:0;bottom:0;height:50px;background:#FFFFFF;z-index:3;pointer-events:none;}
-  /* ロード画面：描画が乗るまで覆う（往復のチラつきも隠す）。フォント等で起動は待たせない */
   #overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;
     align-items:center;justify-content:flex-start;gap:18px;padding-top:64px;background:#FFFFFF;color:#1A1A1A;
     font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;transition:opacity .5s ease;}
@@ -26,7 +25,6 @@
 </style>
 </head>
 <body>
-  <!-- ▼ iframe を文書の最初に置き、src を即セット＝STUDIOがloaderを開いた瞬間にstreamlit起動を開始（並行） -->
   <iframe id="app" title="Semura Lab."
     src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
 
@@ -39,13 +37,22 @@
   <div id="footmask"></div>
 
   <script>
-    // ロード画面は load(=HTML到達・UI描画前)では消さない。
-    // 実際にUIが描画された＝中身の高さが立ち上がった/streamlitが高さ通知を送った瞬間に、1回だけ消す。
-    // → 真っ白の隙間も、起動時の往復チラつきも覆ったまま、描画と同時にすっと退く。
+    // 消すタイミング = 「描画が乗った」かつ「最低2.0秒は見せた」を両方満たした時。
+    //   ・最低2.0秒：実測で“自然に切り替わった回”がちょうど2.0秒だったため（中央値1.8s）。
+    //               これ未満だとチラ見えで不自然。速い回でもここまでは必ず見せる。
+    //   ・描画検知：2秒経過後、UIが実際に乗った瞬間に消す（遅い回はそこまで待つ＝真っ白を出さない）。
+    //   ・保険12秒：検知が効かない異常時のみ。
     (function(){
-      var overlay=document.getElementById('overlay'), app=document.getElementById('app'), done=false;
-      function reveal(){ if(done)return; done=true; overlay.classList.add('hide');
-        setTimeout(function(){ if(overlay&&overlay.parentNode) overlay.parentNode.removeChild(overlay); },500); }
+      var overlay=document.getElementById('overlay'), app=document.getElementById('app');
+      var done=false, start=Date.now(), MIN=2000;
+      function reveal(){
+        if(done)return; done=true;
+        var wait=Math.max(0, MIN-(Date.now()-start));   // 最低2秒は必ず見せる
+        setTimeout(function(){
+          overlay.classList.add('hide');
+          setTimeout(function(){ if(overlay&&overlay.parentNode) overlay.parentNode.removeChild(overlay); },500);
+        }, wait);
+      }
       function ready(){ try{ var d=app.contentDocument||(app.contentWindow&&app.contentWindow.document);
         if(d&&d.body&&d.body.scrollHeight>120) return true; }catch(e){} return false; }
       var poll=setInterval(function(){ if(ready()){ clearInterval(poll); reveal(); } },50);
@@ -53,6 +60,7 @@
         if(e&&e.data&&typeof e.data==='object'&&(e.data.type==='streamlit:setFrameHeight'||e.data.isStreamlitMessage)){
           clearInterval(poll); reveal(); }
       });
+      setTimeout(reveal, 12000); // 保険（異常時のみ）
     })();
   </script>
 </body>
