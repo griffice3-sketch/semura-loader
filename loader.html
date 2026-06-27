@@ -37,31 +37,14 @@
   <div id="footmask"></div>
 
   <script>
-    // 消すタイミング = 「描画が乗った」かつ「最低2.0秒は見せた」を両方満たした時。
-    //   ・最低2.0秒：実測で“自然に切り替わった回”がちょうど2.0秒だったため（中央値1.8s）。
-    //               これ未満だとチラ見えで不自然。速い回でもここまでは必ず見せる。
-    //   ・描画検知：2秒経過後、UIが実際に乗った瞬間に消す（遅い回はそこまで待つ＝真っ白を出さない）。
-    //   ・保険12秒：検知が効かない異常時のみ。
-    (function(){
-      var overlay=document.getElementById('overlay'), app=document.getElementById('app');
-      var done=false, start=Date.now(), MIN=5000;
-      function reveal(){
-        if(done)return; done=true;
-        var wait=Math.max(0, MIN-(Date.now()-start));   // 最低2秒は必ず見せる
-        setTimeout(function(){
-          overlay.classList.add('hide');
-          setTimeout(function(){ if(overlay&&overlay.parentNode) overlay.parentNode.removeChild(overlay); },500);
-        }, wait);
-      }
-      function ready(){ try{ var d=app.contentDocument||(app.contentWindow&&app.contentWindow.document);
-        if(d&&d.body&&d.body.scrollHeight>120) return true; }catch(e){} return false; }
-      var poll=setInterval(function(){ if(ready()){ clearInterval(poll); reveal(); } },50);
-      window.addEventListener('message',function(e){
-        if(e&&e.data&&typeof e.data==='object'&&(e.data.type==='streamlit:setFrameHeight'||e.data.isStreamlitMessage)){
-          clearInterval(poll); reveal(); }
-      });
-      setTimeout(reveal, 12000); // 保険（異常時のみ）
-    })();
+    // 描画検知はクロスオリジンの壁で不可能（高さ読めず・streamlitは高さ通知も送らない）と実機ログで確定。
+    // よって純粋タイマー。実測で「自然に切り替わった回」がロード画面2.0秒だったため 2000ms。
+    setTimeout(function(){
+      var o=document.getElementById('overlay');
+      if(!o) return;
+      o.classList.add('hide');
+      setTimeout(function(){ if(o.parentNode) o.parentNode.removeChild(o); }, 500);
+    }, 2000);
   </script>
 </body>
 </html>
