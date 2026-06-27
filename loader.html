@@ -7,17 +7,18 @@
 <link rel="preconnect" href="https://semura-top.streamlit.app">
 <style>
   html, body { margin:0; height:100%; background:#FFFFFF; }
-  #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#FFFFFF; }
+  /* iframeは最初は透明。起動完了で見せる */
+  #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block;
+    background:#FFFFFF; opacity:0; transition:opacity .4s ease; }
+  #app.ready { opacity:1; }
   #footmask { position:fixed; left:0; right:0; bottom:0; height:50px;
     background:#FFFFFF; z-index:1; pointer-events:none; }
-  /* iframe初回ラグの「真っ白」だけを隠す軽量ロード。loadで即消す。固定で居座らせない */
+  /* 最初からロード画面。起動完了で消す */
   #boot { position:fixed; inset:0; z-index:9; background:#FFFFFF;
-    display:flex; align-items:center; justify-content:center;
-    transition:opacity .35s ease; }
+    display:flex; align-items:center; justify-content:center; transition:opacity .4s ease; }
   #boot.hide { opacity:0; pointer-events:none; }
   #boot .spin { width:34px; height:34px; border-radius:50%;
-    border:3px solid #E6E9EE; border-top-color:#33485E;
-    animation:sp .8s linear infinite; }
+    border:3px solid #E6E9EE; border-top-color:#33485E; animation:sp .8s linear infinite; }
   @keyframes sp { to { transform:rotate(360deg); } }
 </style>
 </head>
@@ -27,20 +28,12 @@
     src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
   <div id="footmask"></div>
   <script>
-    (function(){
-      var boot = document.getElementById('boot');
-      var ifr  = document.getElementById('app');
-      var done = false;
-      function hide(){
-        if(done) return; done = true;
-        boot.classList.add('hide');
-        setTimeout(function(){ boot.style.display='none'; }, 400);
-      }
-      // 本筋: iframeのHTML/JSが届いた瞬間に消す（真っ白の終わり＝Streamlitが描画を始める）
-      ifr.addEventListener('load', hide);
-      // 保険のみ: loadが万一来なくても永久居座りさせない。短く。通常はloadが先に来る
-      setTimeout(hide, 6000);
-    })();
+    var ifr = document.getElementById('app');
+    // 起動完了でロード画面を消し、iframeを見せる。それだけ。
+    ifr.addEventListener('load', function(){
+      ifr.classList.add('ready');
+      document.getElementById('boot').classList.add('hide');
+    });
   </script>
 </body>
 </html>
