@@ -44,7 +44,7 @@
     //   ・保険12秒：検知が効かない異常時のみ。
     (function(){
       var overlay=document.getElementById('overlay'), app=document.getElementById('app');
-      var done=false, start=Date.now(), MIN=2500;
+      var done=false, start=Date.now(), MIN=3000;
       function reveal(){
         if(done)return; done=true;
         var wait=Math.max(0, MIN-(Date.now()-start));   // 最低2秒は必ず見せる
