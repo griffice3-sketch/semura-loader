@@ -3,48 +3,53 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- streamlitへの接続・取得を最優先で先行（loader表示と同時に起動） -->
+<title>Semura Lab.</title>
+
+<!-- ① アクセスした瞬間、streamlitの起動を"同時"に開始（接続・取得を先行で温める） -->
 <link rel="preconnect" href="https://semura-top.streamlit.app" crossorigin>
 <link rel="dns-prefetch" href="https://semura-top.streamlit.app">
-<link rel="preload" as="document" href="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme">
-<title>Semura Lab.</title>
+<link rel="prefetch" as="document"
+  href="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme">
+
 <style>
   html,body{margin:0;height:100%;background:#FFFFFF;}
-  #app{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#FFFFFF;}
-  #footmask{position:fixed;left:0;right:0;bottom:0;height:50px;background:#FFFFFF;z-index:3;pointer-events:none;}
-  #overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;
-    align-items:center;justify-content:flex-start;gap:18px;padding-top:64px;background:#FFFFFF;color:#1A1A1A;
-    font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;transition:opacity .5s ease;}
-  #overlay.hide{opacity:0;pointer-events:none;}
+  /* ② ロード画面（このページ自身がロード画面。埋め込み窓は使わない） */
+  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:flex-start;gap:18px;padding-top:64px;
+    background:#FFFFFF;color:#1A1A1A;
+    font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;}
   #overlay .brand{font-size:22px;font-weight:700;}
   #overlay .rule{width:46px;height:2px;background:#111111;}
   #overlay .spinner{width:34px;height:34px;border:3px solid #E6E8EC;border-top-color:#33485E;
     border-radius:50%;animation:spin .9s linear infinite;}
   #overlay .msg{font-size:15px;color:#6B6B6B;letter-spacing:.03em;}
   @keyframes spin{to{transform:rotate(360deg);}}
+  #dbg{position:fixed;right:6px;bottom:6px;font:11px monospace;color:#CFCFCF;}
 </style>
 </head>
 <body>
-  <iframe id="app" title="Semura Lab."
-    src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
-
   <div id="overlay">
     <div class="brand">Semura&nbsp;Lab.</div>
     <div class="rule"></div>
-    <div class="spinner" role="status" aria-label="読み込み中"></div>
+    <div class="spinner"></div>
     <div class="msg">準備しています…</div>
   </div>
-  <div id="footmask"></div>
+  <div id="dbg">t=0.0s</div>
 
   <script>
-    // 描画検知はクロスオリジンの壁で不可能（高さ読めず・streamlitは高さ通知も送らない）と実機ログで確定。
-    // よって純粋タイマー。実測で「自然に切り替わった回」がロード画面2.0秒だったため 2000ms。
+    // ③ アクセスと同時に streamlit を裏で温める（fetchで起動を促す）＋ タイマー始動。
+    var URL = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
+    try { fetch(URL, {mode:"no-cors"}); } catch(e) {}   // 起動を“同時発射”（no-corsで投げるだけ）
+
+    var t0 = Date.now(), dbg = document.getElementById('dbg');
+    var tick = setInterval(function(){ dbg.textContent = "t="+((Date.now()-t0)/1000).toFixed(1)+"s"; }, 100);
+
+    // ④ タイマー（2秒）が切れたら streamlit 本体へ移動＝表示。秒数はここだけ変えれば変わる。
+    var SECONDS = 2.0;
     setTimeout(function(){
-      var o=document.getElementById('overlay');
-      if(!o) return;
-      o.classList.add('hide');
-      setTimeout(function(){ if(o.parentNode) o.parentNode.removeChild(o); }, 500);
-    }, 5000);
+      clearInterval(tick);
+      location.replace(URL);
+    }, SECONDS * 1000);
   </script>
 </body>
 </html>
