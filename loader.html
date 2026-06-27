@@ -3,23 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- キャッシュさせない（STUDIOが毎回最新のloaderを取りに来るように） -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Semura Lab.</title>
 
-<!-- 同時発射：streamlitへの接続を最上部で先行 -->
 <link rel="preconnect" href="https://semura-top.streamlit.app" crossorigin>
 <link rel="dns-prefetch" href="https://semura-top.streamlit.app">
 
-<!-- 同時発射：他より先に streamlit 本体(iframe)を起動。裏で勝手に走る（ロード画面とは無関係） -->
 <script>
   var SRC = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
   document.write('<iframe id="app" title="Semura Lab." src="'+SRC+'"></iframe>');
 </script>
 
 <style>
-  /* loaderページ自身はスクロールを持たない（縦スクロールはSTUDIO側の1本に集約） */
-  html,body{margin:0;background:#FFFFFF;overflow:hidden;}
-  /* streamlit本体。画面固定(fixed/height:100%)をやめ、STUDIO枠の高さぶん“普通に”縦に伸ばす。
-     こうすると iframe内のスクロールが消え、縦スクロールは外側(STUDIO)の1本だけになる。 */
+  /* loaderページは普通にスクロールできる（中身=3000pxを見れるように）。
+     縦スクロールは1本だけ（streamlit iframe内のスクロールは下で消す）。 */
+  html,body{margin:0;background:#FFFFFF;}
+  /* streamlit本体：画面固定をやめ、3000pxの普通iframeにして“内側スクロール”を消す。
+     縦スクロールはloader/STUDIO側の1本に集約される。 */
   #app{display:block;width:100%;height:3000px;border:0;background:#FFFFFF;}
   #footmask{position:fixed;left:0;right:0;bottom:0;height:50px;background:#FFFFFF;z-index:3;pointer-events:none;}
   /* ロード画面：画面を覆う。タイマーで独立して消える */
@@ -45,7 +48,6 @@
   <div id="footmask"></div>
 
   <script>
-    // ロード画面は独立。タイマーが切れたら消す。それだけ。
     var SECONDS = 2.0;   // ← 調整はここだけ
     setTimeout(function(){
       var o=document.getElementById('overlay'); if(o) o.style.display='none';
