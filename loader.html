@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- キャッシュさせない（毎回最新のloaderを取りに来るように） -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Semura Lab.</title>
 <link rel="preconnect" href="https://semura-top.streamlit.app">
 <style>
@@ -10,70 +14,61 @@
   #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#FFFFFF; }
   #footmask { position:fixed; left:0; right:0; bottom:0; height:50px;
     background:#FFFFFF; z-index:1; pointer-events:none; }
-  /* スピナーは iframe の“手前”(z-index:9)。streamlitの白背景より上でないと見えないため。
-     消すのは app.py の描画完了合図(SEMURA_READY)。早すぎる素のloadでは消さない。 */
-  #boot { position:fixed; inset:0; z-index:9; background:#FFFFFF;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
-    transition:opacity .4s ease; }
-  #boot.hide { opacity:0; pointer-events:none; }
-  #boot .spin { width:38px; height:38px; border-radius:50%;
-    border:4px solid #D7DBE0; border-top-color:#33485E; animation:sp .8s linear infinite; }
-  #boot .txt { font:14px/1 "Noto Sans JP",system-ui,sans-serif; color:#7A8694;
-    letter-spacing:.05em; transition:opacity .3s ease; }
-  /* 進捗バー：実起動とは非連動の演出。READYが来たら満ちて消える。 */
-  #boot .bar { width:200px; height:4px; border-radius:999px; background:#E9ECEF; overflow:hidden; }
-  #boot .bar > i { display:block; height:100%; width:0%; border-radius:999px;
+  /* ロード画面：上寄りに出す（見切れ防止）。時間(SECONDS)で消える実績方式。 */
+  #overlay { position:fixed; inset:0; z-index:9; background:#FFFFFF;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    gap:18px; padding-top:22vh;
+    font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif; }
+  #overlay .brand { font-size:22px; font-weight:700; color:#1A1A1A; }
+  #overlay .rule { width:46px; height:2px; background:#111111; }
+  #overlay .spinner { width:34px; height:34px; border:3px solid #E6E8EC; border-top-color:#33485E;
+    border-radius:50%; animation:spin .9s linear infinite; }
+  /* 進捗バー（実起動とは非連動の演出） */
+  #overlay .bar { width:200px; height:4px; border-radius:999px; background:#E9ECEF; overflow:hidden; }
+  #overlay .bar > i { display:block; height:100%; width:0%; border-radius:999px;
     background:#33485E; transition:width .25s linear; }
-  @keyframes sp { to { transform:rotate(360deg); } }
+  #overlay .msg { font-size:15px; color:#6B6B6B; letter-spacing:.03em; transition:opacity .3s ease; }
+  @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
-  <div id="boot">
-    <div class="spin"></div>
-    <div class="bar"><i id="bootbar"></i></div>
-    <div class="txt" id="boottxt">診断エンジンを初期化しています…</div>
+  <div id="overlay">
+    <div class="brand">Semura&nbsp;Lab.</div>
+    <div class="rule"></div>
+    <div class="spinner"></div>
+    <div class="bar"><i id="ovbar"></i></div>
+    <div class="msg" id="ovmsg">診断エンジンを初期化しています…</div>
   </div>
   <iframe id="app" title="Semura Lab."
     src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
   <div id="footmask"></div>
   <script>
-    var boot = document.getElementById('boot'), off = false;
-    var bar  = document.getElementById('bootbar');
-    var txt  = document.getElementById('boottxt');
+    var SECONDS = 4.8;   // ← ロード画面の表示時間。調整はここだけ（実績方式）
+    var bar = document.getElementById('ovbar');
+    var msg = document.getElementById('ovmsg');
 
-    // ── 進捗バーの演出（実起動とは非連動）──
-    //   最初は速く伸び、後半は粘って 95% で頭打ち。READY が来たら 100% にして消す。
-    //   起動が速ければバーが途中でも消える（＝「最後までいってないのに起動」パターン）。
-    var pct = 0;
+    // 進捗バー：最初速く→後半粘り、SECONDS の終盤で 95% 付近。実起動とは非連動の演出。
+    var pct = 0, total = SECONDS * 1000, t0 = Date.now();
     var tick = setInterval(function(){
-      if (off) return;
-      // 残り(95-pct)の一定割合ずつ詰める＝最初速く・後半ゆっくり
-      pct += Math.max(0.4, (95 - pct) * 0.06);
-      if (pct >= 95) { pct = 95; }
+      var k = Math.min(1, (Date.now() - t0) / total);   // 0→1 の進行
+      pct = 95 * (1 - Math.pow(1 - k, 2.2));             // 最初速く・後半ゆっくり
       bar.style.width = pct.toFixed(1) + '%';
-    }, 120);
+    }, 80);
 
-    // ── 文言切替：3.3秒までは初期化、以降は「まもなく」──
-    var swap = setTimeout(function(){
-      if (off) return;
-      txt.style.opacity = 0;
-      setTimeout(function(){
-        if (off) return;
-        txt.textContent = 'まもなく診断を開始します';
-        txt.style.opacity = 1;
-      }, 300);
+    // 文言：3.3秒までは初期化、以降は「まもなく」
+    setTimeout(function(){
+      msg.style.opacity = 0;
+      setTimeout(function(){ msg.textContent = 'まもなく診断を開始します'; msg.style.opacity = 1; }, 300);
     }, 3300);
 
-    function hide(){
-      if (off) return; off = true;
-      clearInterval(tick); clearTimeout(swap);
-      bar.style.width = '100%';           // READYが来たら満ちてから
-      setTimeout(function(){ boot.classList.add('hide'); }, 180);
-    }
-    // app.py が「描画し終えた」合図を送ってきたら消す＝起動完了で消える(時間に依存しない)。
-    window.addEventListener('message', function(e){ if (e && e.data === 'SEMURA_READY') hide(); });
-    // 保険のみ：合図が来ない異常時だけ。正常時は SEMURA_READY で先に消える。
-    setTimeout(hide, 10000);
+    // 実績方式：SECONDS 経過でバーを満たして overlay を消す（時間で確実に消える）
+    setTimeout(function(){
+      clearInterval(tick);
+      bar.style.width = '100%';
+      setTimeout(function(){
+        var o = document.getElementById('overlay'); if (o) o.style.display = 'none';
+      }, 180);
+    }, SECONDS * 1000);
   </script>
 </body>
 </html>
