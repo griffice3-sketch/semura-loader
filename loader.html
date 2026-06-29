@@ -10,20 +10,25 @@
 <title>Semura Lab.</title>
 <link rel="preconnect" href="https://semura-top.streamlit.app">
 <style>
-  html, body { margin:0; height:100%; background:#FFFFFF; }
-  #app { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#FFFFFF; }
+  /* loader自身は縦スクロールしない。縦スクロールはSTUDIO側(親iframe)に集約。 */
+  html, body { margin:0; background:#FFFFFF; overflow:hidden; }
+  /* streamlit本体：画面固定をやめ、縦長の“普通のiframe”にする（STUDIO埋め込みで実績ある方式） */
+  #app { display:block; width:100%; height:4000px; border:0; background:#FFFFFF; }
   #footmask { position:fixed; left:0; right:0; bottom:0; height:50px;
-    background:#FFFFFF; z-index:1; pointer-events:none; }
-  /* ロード画面：上寄りに出す（見切れ防止）。時間(SECONDS)で消える実績方式。 */
-  #overlay { position:fixed; inset:0; z-index:9; background:#FFFFFF;
+    background:#FFFFFF; z-index:3; pointer-events:none; }
+  /* ── ロード画面 ──
+     position:fixed は多重iframeの中だと“見えない位置”へ逃げることがあるため、
+     親(body)基準の position:absolute で必ず最上部(top:0)に貼り付ける。
+     上端から padding-top で少し下げた位置に内容を出す＝確実に見える位置。 */
+  #overlay { position:absolute; top:0; left:0; right:0; min-height:100vh; z-index:5;
+    background:#FFFFFF;
     display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-    gap:18px; padding-top:22vh;
+    gap:16px; padding-top:64px;
     font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif; }
   #overlay .brand { font-size:22px; font-weight:700; color:#1A1A1A; }
   #overlay .rule { width:46px; height:2px; background:#111111; }
   #overlay .spinner { width:34px; height:34px; border:3px solid #E6E8EC; border-top-color:#33485E;
     border-radius:50%; animation:spin .9s linear infinite; }
-  /* 進捗バー（実起動とは非連動の演出） */
   #overlay .bar { width:200px; height:4px; border-radius:999px; background:#E9ECEF; overflow:hidden; }
   #overlay .bar > i { display:block; height:100%; width:0%; border-radius:999px;
     background:#33485E; transition:width .25s linear; }
@@ -43,15 +48,15 @@
     src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
   <div id="footmask"></div>
   <script>
-    var SECONDS = 4.8;   // ← ロード画面の表示時間。調整はここだけ（実績方式）
+    var SECONDS = 4.8;   // ← ロード画面の表示時間。調整はここだけ
     var bar = document.getElementById('ovbar');
     var msg = document.getElementById('ovmsg');
 
-    // 進捗バー：最初速く→後半粘り、SECONDS の終盤で 95% 付近。実起動とは非連動の演出。
-    var pct = 0, total = SECONDS * 1000, t0 = Date.now();
+    // 進捗バー：最初速く→後半粘り、終盤95%付近。実起動とは非連動の演出。
+    var total = SECONDS * 1000, t0 = Date.now();
     var tick = setInterval(function(){
-      var k = Math.min(1, (Date.now() - t0) / total);   // 0→1 の進行
-      pct = 95 * (1 - Math.pow(1 - k, 2.2));             // 最初速く・後半ゆっくり
+      var k = Math.min(1, (Date.now() - t0) / total);
+      var pct = 95 * (1 - Math.pow(1 - k, 2.2));
       bar.style.width = pct.toFixed(1) + '%';
     }, 80);
 
@@ -61,7 +66,7 @@
       setTimeout(function(){ msg.textContent = 'まもなく診断を開始します'; msg.style.opacity = 1; }, 300);
     }, 3300);
 
-    // 実績方式：SECONDS 経過でバーを満たして overlay を消す（時間で確実に消える）
+    // SECONDS 経過でバーを満たして overlay を消す（時間で確実に消える）
     setTimeout(function(){
       clearInterval(tick);
       bar.style.width = '100%';
