@@ -1,132 +1,52 @@
-# funnel_log.py  ―  SEMURAラボ semura-top ファネル計測
-# 目的: LP訪問→診断→問い合わせ の離脱箇所を可視化する。
-# 鉄則:
-#   - アップロードされたファイル本体・中身は一切残さない。
-#   - 残すのはメタデータのみ（時刻 / 匿名セッションID / イベント / ルート / ティア）。
-#   - ハッシュはメモリ内で二重発火防止に使うだけで、書き出さない。
-#   - ログ処理が失敗しても診断本体は絶対に止めない（try/exceptで握る）。
-#   - axes.py には一切関係しない・触らない。
-#
-# 流す先:
-#   - Google スプレッドシート … 全イベントを追記（あとでピボットして離脱率を読む台帳）
-#   - Slack/Discord webhook    … diagnosis / inquiry の時だけ鳴らす（今すぐ気付く呼び鈴）
-#
-# どちらか片方だけ Secrets に入れれば、その片方だけ動く（両方任意）。
-#
-# ★★★ 一時調査モード（5分おきアクセスの犯人特定用） ★★★
-#   - PROBE_UA = True の間だけ、app_open の route 列に User-Agent を書き込む。
-#   - 目的: 5分おきの定期アクセスが何者か（監視bot/ブラウザ等）を名乗らせる。
-#   - User-Agent は個人情報ではない（ブラウザ種別/bot名のみ）。IPは取得しない。
-#   - 犯人特定が済んだら PROBE_UA = False に戻す（このブロックごと撤去してよい）。
-
-import uuid
-import json
-import urllib.request
-from datetime import datetime, timezone, timedelta
-
-import streamlit as st
-
-# 時刻は日本時間(JST)で記録する。台帳には +09:00 付きで残る。
-JST = timezone(timedelta(hours=9))
-
-# webhook を鳴らすイベント（ここに無いものはスプレッドシートにだけ残る）
-_RING = {"diagnosis", "inquiry"}
-
-# ── 一時調査スイッチ ────────────────────────────────────
-# True の間だけ app_open の route 列に User-Agent を記録する。特定できたら False。
-PROBE_UA = True
-# ───────────────────────────────────────────────────────
-
-
-def get_sid() -> str:
-    """起動ごとの匿名・使い捨てセッションID。個人情報もIPも含まない。"""
-    if "sid" not in st.session_state:
-        st.session_state.sid = uuid.uuid4().hex[:12]
-    return st.session_state.sid
-
-
-def _user_agent() -> str:
-    """現在セッションの User-Agent を返す。取れなければ空文字。
-    st.context.headers は read-only。IPは取得しない（鉄則）。"""
-    try:
-        ua = st.context.headers.get("User-Agent", "")
-        return (ua or "")[:180]  # 長すぎるUAはセル用に頭180文字だけ
-    except Exception:
-        return ""
-
-
-@st.cache_resource
-def _sheet():
-    """スプレッドシート接続。Secretsに設定が無ければ None を返す（=無効化）。"""
-    try:
-        import gspread
-        from google.oauth2.service_account import Credentials
-        creds = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
-            scopes=["https://www.googleapis.com/auth/spreadsheets"],
-        )
-        return gspread.authorize(creds).open_by_key(
-            st.secrets["sheets"]["log_id"]
-        ).sheet1
-    except Exception:
-        return None
-
-
-def _to_sheet(row):
-    sh = _sheet()
-    if sh is None:
-        return
-    try:
-        sh.append_row(row)
-    except Exception:
-        pass  # 失敗しても診断を止めない
-
-
-def _to_webhook(event, route, tier):
-    try:
-        url = st.secrets["webhook"]["url"]
-    except Exception:
-        url = ""
-    if not url:
-        return
-    label = {"diagnosis": "🩺 診断あり", "inquiry": "📩 問い合わせあり"}.get(event, event)
-    text = f"{label}\nルート: {route or '-'}\nティア: {tier or '-'}"
-    # Slack と Discord はどちらも {"content"/"text": ...} 系。両対応で両キー入れておく。
-    payload = json.dumps({"text": text, "content": text}).encode()
-    try:
-        req = urllib.request.Request(
-            url, data=payload,
-            headers={"Content-Type": "application/json",
-                     "User-Agent": "semura-funnel/1.0"})
-        urllib.request.urlopen(req, timeout=4)
-    except Exception:
-        pass  # 失敗しても診断を止めない
-
-
-def log_event(token: str, event: str, route: str = "", tier: str = ""):
-    """
-    1イベントをスプレッドシートに記録し、必要なら webhook も鳴らす。
-
-    token : 二重発火防止キー（同じtokenは1セッション内で1回しか発火しない）
-    event : "page_view" / "upload" / "diagnosis" / "inquiry" など
-    route : "summary" / "trade_history" / "statement" / "mql4" / "mql5"
-    tier  : "処方不要" / "リデザイン可" / "診断保留" / "運用停止"
-    """
-    fired = st.session_state.setdefault("_fired", set())
-    if token in fired:
-        return
-    fired.add(token)
-
-    # ── 一時調査: app_open かつ route が空のときだけ UA を載せる ──
-    # （診断ログは route を本来の用途で使うので絶対に汚さない）
-    if PROBE_UA and event == "app_open" and not route:
-        route = _user_agent()
-    # ────────────────────────────────────────────────────
-
-    row = [
-        datetime.now(JST).isoformat(timespec="seconds"),
-        get_sid(), event, route, tier,
-    ]
-    _to_sheet(row)
-    if event in _RING:
-        _to_webhook(event, route, tier)
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- キャッシュさせない（STUDIOが毎回最新のloaderを取りに来るように） -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Semura Lab.</title>
+<link rel="preconnect" href="https://semura-top.streamlit.app" crossorigin>
+<link rel="dns-prefetch" href="https://semura-top.streamlit.app">
+<script>
+  var SRC = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
+  document.write('<iframe id="app" title="Semura Lab." src="'+SRC+'"></iframe>');
+</script>
+<style>
+  /* ロード解除後のスクロールバーちらつき対策：loader自身は縦スクロールしない。
+     縦スクロールはSTUDIO側(4000pxのiframe)に集約する。 */
+  html,body{margin:0;background:#FFFFFF;overflow:hidden;}
+  /* streamlit本体：画面固定をやめ、4000pxの普通iframeにして“内側スクロール”を消す。 */
+  #app{display:block;width:100%;height:4000px;border:0;background:#FFFFFF;}
+  #footmask{position:fixed;left:0;right:0;bottom:0;height:50px;background:#FFFFFF;z-index:3;pointer-events:none;}
+  /* ロード画面：画面を覆う。タイマーで独立して消える */
+  #overlay{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;
+    align-items:center;justify-content:flex-start;gap:18px;padding-top:64px;
+    background:#FFFFFF;color:#1A1A1A;
+    font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;}
+  #overlay .brand{font-size:22px;font-weight:700;}
+  #overlay .rule{width:46px;height:2px;background:#111111;}
+  #overlay .spinner{width:34px;height:34px;border:3px solid #E6E8EC;border-top-color:#33485E;
+    border-radius:50%;animation:spin .9s linear infinite;}
+  #overlay .msg{font-size:15px;color:#6B6B6B;letter-spacing:.03em;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="brand">Semura&nbsp;Lab.</div>
+    <div class="rule"></div>
+    <div class="spinner"></div>
+    <div class="msg">準備しています…</div>
+  </div>
+  <div id="footmask"></div>
+  <script>
+    var SECONDS = 4.8;   // ← 調整はここだけ
+    setTimeout(function(){
+      var o=document.getElementById('overlay'); if(o) o.style.display='none';
+    }, SECONDS*1000);
+  </script>
+</body>
+</html>
