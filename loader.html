@@ -44,10 +44,47 @@
     <div class="bar"><i id="ovbar"></i></div>
     <div class="msg" id="ovmsg">診断エンジンを初期化しています…</div>
   </div>
-  <iframe id="app" title="Semura Lab."
-    src="https://semura-top.streamlit.app/?embed=true&embed_options=light_theme"></iframe>
+  <!-- src は最初は空。ステルス判定が固まってからJSで差し込む（下記参照）。 -->
+  <iframe id="app" title="Semura Lab."></iframe>
   <div id="footmask"></div>
+
   <script>
+    // ─────────────────────────────────────────────────────────────
+    // ステルス転送（船長PC除外）
+    //   親(semura-lab.com)とこのloader(github.io)はドメインが違うため
+    //   localStorageを共有できない。親がpostMessageで「ステルスだ」と通知してくる。
+    //   それを受けたらStreamlitのsrcに &stealth=xyz を付けて起動する。
+    //   通知が来ない一般ユーザーは、短いタイムアウト後に素のsrcで起動する。
+    // ─────────────────────────────────────────────────────────────
+    var STEALTH_PASS = "xyz";   // funnel_log.py の _STEALTH_PASS と一致させること
+    var BASE_SRC = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
+
+    var appEl   = document.getElementById('app');
+    var started = false;   // iframeを起動したか（二重起動防止）
+
+    function startApp(stealth) {
+      if (started) return;
+      started = true;
+      appEl.src = stealth ? (BASE_SRC + "&stealth=" + encodeURIComponent(STEALTH_PASS))
+                          : BASE_SRC;
+    }
+
+    // 親からの postMessage を受信。ステルス通知が来たら即ステルス起動。
+    window.addEventListener('message', function(ev) {
+      var d = ev.data;
+      if (d && d.semura_stealth === true) {
+        startApp(true);
+      }
+    });
+
+    // 親に「準備できた」を知らせる（親が load 前に投げて取りこぼすのを防ぐ保険）。
+    try { if (window.parent) window.parent.postMessage({ semura_loader_ready: true }, '*'); } catch (e) {}
+
+    // 一般ユーザー用フォールバック：一定時間ステルス通知が来なければ素で起動。
+    // 親のpostMessageは load / 1s / 3s で複数回飛ぶ設計なので、ここは少し長めに待つ。
+    setTimeout(function(){ startApp(false); }, 1200);
+    // ─────────────────────────────────────────────────────────────
+
     var SECONDS = 4.8;   // ← ロード画面の表示時間。調整はここだけ
     var bar = document.getElementById('ovbar');
     var msg = document.getElementById('ovmsg');
