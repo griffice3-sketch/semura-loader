@@ -50,13 +50,14 @@
 
   <script>
     // ─────────────────────────────────────────────────────────────
-    // ステルス転送（船長PC除外）
-    //   親(semura-lab.com)とこのloader(github.io)はドメインが違うため
-    //   localStorageを共有できない。親がpostMessageで「ステルスだ」と通知してくる。
-    //   それを受けたらStreamlitのsrcに &stealth=xyz を付けて起動する。
-    //   通知が来ない一般ユーザーは、短いタイムアウト後に素のsrcで起動する。
+    // ステルス転送（船長PC除外） ※リクエスト/レスポンス型
+    //   親(semura-lab.com)とこのloader(github.io)はドメインが違い localStorageを共有できない。
+    //   【投げっぱなしだと競合する】ため、loaderから親へ「状態をくれ」と要求し、
+    //   親の応答(stealth: true/false)を受け取ってから初めてStreamlitを起動する。
+    //   これで「素起動が先に走ってステルス通知を取りこぼす」競合が原理的に起きない。
+    //   保険として、親が応答しない異常時のみタイムアウトで素起動する。
     // ─────────────────────────────────────────────────────────────
-    var STEALTH_PASS = "xyz";   // funnel_log.py の _STEALTH_PASS と一致させること
+    var STEALTH_PASS = "xyz";   // funnel_log.py / studio script の合言葉と一致させること
     var BASE_SRC = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
 
     var appEl   = document.getElementById('app');
@@ -69,20 +70,29 @@
                           : BASE_SRC;
     }
 
-    // 親からの postMessage を受信。ステルス通知が来たら即ステルス起動。
+    // 親からの応答を待つ。{ semura_stealth_state: true/false } が来たらその値で起動。
     window.addEventListener('message', function(ev) {
       var d = ev.data;
-      if (d && d.semura_stealth === true) {
-        startApp(true);
+      if (d && typeof d.semura_stealth_state !== 'undefined') {
+        startApp(d.semura_stealth_state === true);
       }
     });
 
-    // 親に「準備できた」を知らせる（親が load 前に投げて取りこぼすのを防ぐ保険）。
-    try { if (window.parent) window.parent.postMessage({ semura_loader_ready: true }, '*'); } catch (e) {}
+    // 親へ「ステルス状態を教えてくれ」と要求する。
+    // 親スクリプトの読み込み順に依存しないよう、複数回（即時・短間隔）要求を出す。
+    function requestStealthState() {
+      if (started) return;
+      try { if (window.parent) window.parent.postMessage({ semura_stealth_query: true }, '*'); } catch (e) {}
+    }
+    requestStealthState();
+    var qTimer = setInterval(function(){
+      if (started) { clearInterval(qTimer); return; }
+      requestStealthState();
+    }, 300);
 
-    // 一般ユーザー用フォールバック：一定時間ステルス通知が来なければ素で起動。
-    // 親のpostMessageは load / 1s / 3s で複数回飛ぶ設計なので、ここは少し長めに待つ。
-    setTimeout(function(){ startApp(false); }, 1200);
+    // 異常時フォールバック：親が一定時間まったく応答しない場合のみ素起動。
+    // （通常は親が即応答するのでここには来ない。応答が来たら startApp 済みで無視される。）
+    setTimeout(function(){ clearInterval(qTimer); startApp(false); }, 4000);
     // ─────────────────────────────────────────────────────────────
 
     var SECONDS = 4.8;   // ← ロード画面の表示時間。調整はここだけ
