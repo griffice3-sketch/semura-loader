@@ -65,14 +65,29 @@
     var STEALTH_PASS = "xyz";   // funnel_log.py / studio script の合言葉と一致させること
     var BASE_SRC = "https://semura-top.streamlit.app/?embed=true&embed_options=light_theme";
 
+    // ── 言語転送 ──
+    //   このloader自身のURL(?lang=en)を読み、Streamlit(#app)へ &lang=en として引き継ぐ。
+    //   STUDIOの /en ページが loader.html?lang=en で埋め込む → ここで拾って top へ渡す。
+    //   ステルス機構とは独立（別クエリ）。lang未指定なら日本語（付けない＝従来どおり）。
+    var LANG = "";
+    try {
+      var _m = (location.search || "").match(/[?&]lang=([a-zA-Z]+)/);
+      if (_m && _m[1].toLowerCase() === "en") LANG = "en";
+    } catch (e) {}
+    if (LANG === "en") { try { document.documentElement.lang = "en"; } catch (e) {} }
+    function withLang(src) {
+      return LANG ? (src + "&lang=" + LANG) : src;
+    }
+
     var appEl   = document.getElementById('app');
     var started = false;   // iframeを起動したか（二重起動防止）
 
     function startApp(stealth) {
       if (started) return;
       started = true;
-      appEl.src = stealth ? (BASE_SRC + "&stealth=" + encodeURIComponent(STEALTH_PASS))
-                          : BASE_SRC;
+      var src = stealth ? (BASE_SRC + "&stealth=" + encodeURIComponent(STEALTH_PASS))
+                        : BASE_SRC;
+      appEl.src = withLang(src);   // 言語(&lang=en)を最後に付与。ステルス有無に関わらず効く。
     }
 
     // 親からの応答を待つ。{ semura_stealth_state: true/false } が来たらその値で起動。
@@ -104,6 +119,11 @@
     var bar = document.getElementById('ovbar');
     var msg = document.getElementById('ovmsg');
 
+    // ロード画面の文言（言語対応）。lang=en なら英語、既定は日本語。
+    var OV_MSG_INIT = LANG === "en" ? "Initializing the diagnostic engine\u2026" : "診断エンジンを初期化しています…";
+    var OV_MSG_SOON = LANG === "en" ? "Starting shortly\u2026" : "まもなく起動します";
+    msg.textContent = OV_MSG_INIT;
+
     // 進捗バー：最初速く→後半粘り、終盤95%付近。実起動とは非連動の演出。
     var total = SECONDS * 1000, t0 = Date.now();
     var tick = setInterval(function(){
@@ -115,7 +135,7 @@
     // 文言：3.3秒までは初期化、以降は「まもなく」
     setTimeout(function(){
       msg.style.opacity = 0;
-      setTimeout(function(){ msg.textContent = 'まもなく起動します'; msg.style.opacity = 1; }, 300);
+      setTimeout(function(){ msg.textContent = OV_MSG_SOON; msg.style.opacity = 1; }, 300);
     }, 3300);
 
     // SECONDS 経過でバーを満たして overlay を消す（時間で確実に消える）
