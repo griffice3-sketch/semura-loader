@@ -47,7 +47,7 @@
     <div class="rule"></div>
     <div class="spinner"></div>
     <div class="bar"><i id="ovbar"></i></div>
-    <div class="msg" id="ovmsg">診断エンジンを初期化しています…</div>
+    <div class="msg" id="ovmsg">解析エンジンを起動しています…</div>
   </div>
   <!-- src は最初は空。ステルス判定が固まってからJSで差し込む（下記参照）。 -->
   <iframe id="app" title="Semura Lab."></iframe>
@@ -120,7 +120,7 @@
     var msg = document.getElementById('ovmsg');
 
     // ロード画面の文言（言語対応）。lang=en なら英語、既定は日本語。
-    var OV_MSG_INIT = LANG === "en" ? "Initializing the diagnostic engine\u2026" : "診断エンジンを初期化しています…";
+    var OV_MSG_INIT = LANG === "en" ? "Starting the analysis engine\u2026" : "解析エンジンを起動しています…";
     var OV_MSG_SOON = LANG === "en" ? "Starting shortly\u2026" : "まもなく起動します";
     msg.textContent = OV_MSG_INIT;
 
