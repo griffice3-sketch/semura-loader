@@ -82,6 +82,17 @@
     var appEl   = document.getElementById('app');
     var started = false;   // iframeを起動したか（二重起動防止）
 
+    // ── 枠の高さを中身に追従させる ──
+    //   Streamlit本体(app.py)が実コンテンツ高さを postMessage({type:"semura:height"}) で送ってくる。
+    //   それを受けて #app を中身ピッタリの高さに合わせる。固定4000pxだと短い結果で下に空白・
+    //   長い展開で切れる問題を解消。通知が来ない異常時は #app 初期値(4000px)のままなので悪化しない。
+    window.addEventListener('message', function(ev){
+      var d = ev.data;
+      if (d && d.type === "semura:height" && typeof d.height === "number" && d.height > 0) {
+        appEl.style.height = Math.ceil(d.height) + "px";
+      }
+    });
+
     function startApp(stealth) {
       if (started) return;
       started = true;
