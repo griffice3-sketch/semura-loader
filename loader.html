@@ -79,6 +79,25 @@
       return LANG ? (src + "&lang=" + LANG) : src;
     }
 
+    // ── 表示モード転送（view）──
+    //   STUDIO の各ページが loader.html?view=verify / ?view=consult で埋め込む → Streamlit へ &view= で渡す。
+    //     verify  … ロジック検証ページ：「レポートのアップロード」から下だけ
+    //     consult … インフラ相談ページ：お問い合わせフォームだけ
+    //   view 無しは従来どおりの全部入り（既存の埋め込みを壊さない）。lang・ステルスとは独立。
+    var VIEW = "";
+    try {
+      var _v = (location.search || "").match(/[?&]view=([a-zA-Z]+)/);
+      if (_v && (_v[1].toLowerCase() === "verify" || _v[1].toLowerCase() === "consult")) VIEW = _v[1].toLowerCase();
+    } catch (e) {}
+    function withView(src) {
+      return VIEW ? (src + "&view=" + VIEW) : src;
+    }
+
+    // ── view別の高さ（三重iframeで自動追従できないため固定値。船長の手調整はここだけ）──
+    //   verify は判定カード＋問い合わせフォームまで出た状態が収まる高さにする。
+    var APP_HEIGHT = { "": 5000, "verify": 2400, "consult": 700 };
+    document.getElementById('app').style.height = APP_HEIGHT[VIEW] + "px";
+
     var appEl   = document.getElementById('app');
     var started = false;   // iframeを起動したか（二重起動防止）
 
@@ -87,7 +106,7 @@
       started = true;
       var src = stealth ? (BASE_SRC + "&stealth=" + encodeURIComponent(STEALTH_PASS))
                         : BASE_SRC;
-      appEl.src = withLang(src);   // 言語(&lang=en)を最後に付与。ステルス有無に関わらず効く。
+      appEl.src = withLang(withView(src));   // view・言語を最後に付与。ステルス有無に関わらず効く。
     }
 
     // 親からの応答を待つ。{ semura_stealth_state: true/false } が来たらその値で起動。
@@ -120,7 +139,10 @@
     var msg = document.getElementById('ovmsg');
 
     // ロード画面の文言（言語対応）。lang=en なら英語、既定は日本語。
-    var OV_MSG_INIT = LANG === "en" ? "Starting the analysis engine\u2026" : "解析エンジンを起動しています…";
+    // 相談ページ(consult)はフォームだけなので「解析エンジン」とは言わない。
+    var OV_MSG_INIT = VIEW === "consult"
+      ? (LANG === "en" ? "Preparing the form\u2026" : "フォームを準備しています…")
+      : (LANG === "en" ? "Starting the analysis engine\u2026" : "解析エンジンを起動しています…");
     var OV_MSG_SOON = LANG === "en" ? "Starting shortly\u2026" : "まもなく起動します";
     msg.textContent = OV_MSG_INIT;
 
