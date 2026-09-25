@@ -93,10 +93,11 @@
       return VIEW ? (src + "&view=" + VIEW) : src;
     }
 
-    // ── view別の高さ（三重iframeで自動追従できないため固定値。船長の手調整はここだけ）──
-    //   verify は判定カード＋問い合わせフォームまで出た状態が収まる高さにする。
-    var APP_HEIGHT = { "": 5000, "verify": 3200, "consult": 700 };
-    document.getElementById('app').style.height = APP_HEIGHT[VIEW] + "px";
+    // ── 高さ ──
+    //   view付き(verify/consult)：Streamlit(#app)をこのloaderの表示枠いっぱい(100vh)に広げる。
+    //     → 見える高さは STUDIO の埋め込み要素の高さ「だけ」で決まる。loader側に数字は持たない。
+    //   view無し(旧トップの全部入り)：従来どおり CSS の 5000px 固定のまま（既存の埋め込みを壊さない）。
+    if (VIEW) document.getElementById('app').style.height = "100vh";
 
     var appEl   = document.getElementById('app');
     var started = false;   // iframeを起動したか（二重起動防止）
